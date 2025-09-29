@@ -14,14 +14,15 @@ INNER JOIN users AS u
 
 -- 2. LEFT JOIN: Get all properties with their reviews (including properties without reviews)
 SELECT
-    p.property_id,
+   p.property_id,
     p.name AS property_name,
     r.review_id,
     r.rating,
     r.comment
 FROM properties AS p
 LEFT JOIN reviews AS r
-    ON p.property_id = r.property_id;
+    ON p.property_id = r.property_id
+ORDER BY p.name, r.review_id;
 
 
 -- 3. FULL OUTER JOIN: Get all users and all bookings
