@@ -1,24 +1,24 @@
 -- ============================
--- Create Indexes for Optimization
+-- Index creation for optimization
 -- ============================
 
--- Users table: frequently queried by email
+-- Users table
 CREATE INDEX idx_users_email ON users(email);
 
--- Bookings table: often filtered/joined by user_id, property_id, and ordered by created_at
+-- Bookings table
 CREATE INDEX idx_bookings_user_id ON bookings(user_id);
 CREATE INDEX idx_bookings_property_id ON bookings(property_id);
 CREATE INDEX idx_bookings_created_at ON bookings(created_at);
 
--- Properties table: often searched by name and location
+-- Properties table
 CREATE INDEX idx_properties_name ON properties(name);
 CREATE INDEX idx_properties_location ON properties(location);
 
--- Composite index for property + date queries
+-- Composite index for property + date
 CREATE INDEX idx_bookings_property_date ON bookings(property_id, created_at);
 
 -- ============================
--- Performance Measurement
+-- Performance checks (before and after indexes)
 -- ============================
 
 -- Check performance of querying bookings by user_id
