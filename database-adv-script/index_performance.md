@@ -1,133 +1,59 @@
+# Database Index Performance Analysis
+## ALX Airbnb Database Optimization
 
-## 📁 create_and_test_indexes.py
+## Overview
+This document measures query performance before and after adding indexes to the ALX Airbnb database tables (User, Booking, Property, and Review).
 
-```python
-#!/usr/bin/python3
-"""
-Script to create indexes and measure performance
-"""
+## Tables Structure
+```sql
+-- User Table
+CREATE TABLE User (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    phone_number VARCHAR(20),
+    location VARCHAR(255),
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-import mysql.connector
-import time
-import os
-from typing import Dict, Any, List
+-- Property Table  
+CREATE TABLE Property (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    host_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    location VARCHAR(255) NOT NULL,
+    property_type ENUM('apartment', 'house', 'villa', 'condo') NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    status ENUM('available', 'occupied', 'maintenance') DEFAULT 'available',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (host_id) REFERENCES User(id)
+);
 
-def get_db_connection():
-    """Create database connection"""
-    return mysql.connector.connect(
-        host=os.getenv('DB_HOST', 'localhost'),
-        user=os.getenv('DB_USER', 'root'),
-        password=os.getenv('DB_PASSWORD', ''),
-        database='ALX_prodev',
-        port=os.getenv('DB_PORT', '3306')
-    )
+-- Booking Table
+CREATE TABLE Booking (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    property_id INT NOT NULL,
+    check_in_date DATE NOT NULL,
+    check_out_date DATE NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    status ENUM('pending', 'confirmed', 'cancelled', 'completed') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES User(id),
+    FOREIGN KEY (property_id) REFERENCES Property(id)
+);
 
-def execute_sql_file(filename: str):
-    """Execute SQL commands from a file"""
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    
-    try:
-        with open(filename, 'r') as file:
-            sql_commands = file.read().split(';')
-            
-            for command in sql_commands:
-                command = command.strip()
-                if command:
-                    cursor.execute(command)
-                    
-        connection.commit()
-        print(f"Successfully executed {filename}")
-        
-    except Exception as e:
-        print(f"Error executing {filename}: {e}")
-        connection.rollback()
-    finally:
-        cursor.close()
-        connection.close()
-
-def measure_query_performance(query: str, description: str) -> float:
-    """Measure query execution time"""
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    
-    try:
-        start_time = time.time()
-        cursor.execute(query)
-        results = cursor.fetchall()
-        end_time = time.time()
-        
-        execution_time = (end_time - start_time) * 1000  # Convert to milliseconds
-        print(f"{description}: {execution_time:.2f}ms ({len(results)} rows)")
-        
-        return execution_time
-        
-    except Exception as e:
-        print(f"Error measuring query: {e}")
-        return 0
-    finally:
-        cursor.close()
-        connection.close()
-
-def explain_query(query: str) -> List[Dict[str, Any]]:
-    """Get EXPLAIN output for a query"""
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-    
-    try:
-        cursor.execute(f"EXPLAIN {query}")
-        return cursor.fetchall()
-    except Exception as e:
-        print(f"Error explaining query: {e}")
-        return []
-    finally:
-        cursor.close()
-        connection.close()
-
-def main():
-    """Main function to test index performance"""
-    
-    # Test queries
-    test_queries = [
-        ("SELECT * FROM user_data WHERE age > 25", "Age filter query"),
-        ("SELECT * FROM user_data WHERE email = 'Molly59@gmail.com'", "Email lookup"),
-        ("SELECT * FROM user_data WHERE age > 25 ORDER BY name LIMIT 100", "Age filter with sort"),
-        ("SELECT age, COUNT(*) FROM user_data GROUP BY age", "Group by age")
-    ]
-    
-    print("=== PERFORMANCE BEFORE INDEXES ===")
-    before_times = {}
-    for query, description in test_queries:
-        explain_result = explain_query(query)
-        print(f"\nEXPLAIN for {description}:")
-        for row in explain_result:
-            print(f"  {row}")
-        
-        time_taken = measure_query_performance(query, description)
-        before_times[description] = time_taken
-    
-    # Create indexes
-    print("\n=== CREATING INDEXES ===")
-    execute_sql_file('database_index.sql')
-    
-    print("\n=== PERFORMANCE AFTER INDEXES ===")
-    after_times = {}
-    for query, description in test_queries:
-        explain_result = explain_query(query)
-        print(f"\nEXPLAIN for {description}:")
-        for row in explain_result:
-            print(f"  {row}")
-        
-        time_taken = measure_query_performance(query, description)
-        after_times[description] = time_taken
-    
-    # Print comparison
-    print("\n=== PERFORMANCE COMPARISON ===")
-    for description in before_times:
-        before = before_times[description]
-        after = after_times[description]
-        improvement = before / after if after > 0 else 0
-        print(f"{description}: {before:.2f}ms -> {after:.2f}ms ({improvement:.1f}x improvement)")
-
-if __name__ == "__main__":
-    main()
+-- Review Table
+CREATE TABLE Review (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    property_id INT NOT NULL,
+    rating INT CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES User(id),
+    FOREIGN KEY (property_id) REFERENCES Property(id)
+);
